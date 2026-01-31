@@ -23,32 +23,28 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const { title, author, cover } = await request.json();
-
+    const { title, author, cover, rating } = await request.json(); // rating 추가
+    
     const response = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${NOTION_TOKEN}`,
+        'Authorization': `Bearer ${process.env.NOTION_TOKEN}`,
         'Notion-Version': '2022-06-28',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        parent: { database_id: NOTION_DB_ID },
+        parent: { database_id: process.env.NOTION_DB_ID },
         properties: {
           "제목": { title: [{ text: { content: title } }] },
-          "저자": { rich_text: [{ text: { content: author } }] }
+          "저자": { rich_text: [{ text: { content: author } }] },
+          "평점": { number: rating } // 노션의 '평점' 컬럼에 숫자 저장
         },
         icon: { external: { url: cover } }
       })
     });
 
-    if (response.ok) {
-      return NextResponse.json({ success: true });
-    } else {
-      const err = await response.json();
-      console.error(err);
-      return NextResponse.json({ success: false }, { status: 500 });
-    }
+    if (response.ok) return NextResponse.json({ success: true });
+    return NextResponse.json({ success: false }, { status: 500 });
   } catch (error) {
     return NextResponse.json({ success: false }, { status: 500 });
   }
