@@ -7,7 +7,7 @@ export default function BookWidget() {
   const [loading, setLoading] = useState(false);
   
   // 별점 관련 상태 추가
-  const [hover, setHover] = useState(0); 
+  const [hover, setHover] = useState({isbn:'', rating:0}); 
 
   // 1. 검색 함수
   const searchBooks = async () => {
@@ -39,47 +39,61 @@ export default function BookWidget() {
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto font-sans">
-      <div className="flex gap-2 mb-4">
-        <input
-          type="text"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          placeholder="책 제목 검색..."
-          className="border p-2 flex-1 rounded text-black"
-          onKeyDown={(e) => e.key === 'Enter' && searchBooks()}
-        />
-        <button onClick={searchBooks} className="bg-blue-500 text-white p-2 rounded">
-          검색
-        </button>
+    <div style={{
+      "--color1":"#f8edeb",
+      "--color2":"#e9a598",
+      "--color3":"#d48c7e",
+      "--color4":"#C77B6D",
+      "--color5":"#f3dad6"
+    } as React.CSSProperties}
+    // 검색창 영역
+      className="p-4 bg-[var(--color1)] min-h-screen font-konkon">
+      <div className="px-4 py-2 max-w-98 mx-auto">
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder="책 제목 검색..."
+            className="selection:bg-[var(--color4)] selection:text-white outline-none border border-[var(--color2)] 
+            focus:border-[var(--color3)] focus:ring-1 focus:ring-[var(--color3)] 
+            p-2 flex-1 rounded text-bold text-[var(--color3)] font-bold"
+            onKeyDown={(e) => e.key === 'Enter' && searchBooks()}
+          />
+          <button onClick={searchBooks} className={`bg-[var(--color2)] text-white p-2 rounded`}>
+            검색
+          </button>
+        </div>
       </div>
 
-      {loading && <p className="text-center">검색 중...</p>}
+      {loading && <p className="text-center text-[var(--color4)]">검색 중...</p>}
 
-      <div className="space-y-4">
+      <div className="space-y-4 flex flex-col items-center w-full ">
         {books.map((book: any) => (
-          <div key={book.isbn} className="border p-4 rounded-lg flex flex-col items-center bg-white shadow-sm">
-            <img src={book.cover} alt={book.title} className="w-24 h-36 object-cover mb-2 shadow" />
-            <h3 className="font-bold text-center text-sm line-clamp-2 text-black">{book.title}</h3>
-            <p className="text-xs text-gray-500 mb-3">{book.author}</p>
-
-            {/* 별점 저장 UI 부분 */}
-            <div className="flex flex-col items-center border-t pt-3 w-full">
-              <span className="text-xs text-gray-400 mb-1">별점을 클릭하여 저장</span>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    className={`text-3xl transition-transform hover:scale-125 ${
-                      star <= hover ? 'text-yellow-400' : 'text-gray-200'
-                    }`}
-                    onMouseEnter={() => setHover(star)}
-                    onMouseLeave={() => setHover(0)}
-                    onClick={() => saveWithRating(book, star)} // 클릭하면 바로 저장 함수 호출!
-                  >
-                    ★
-                  </button>
-                ))}
+          <div key={book.isbn} className="border border-[var(--color3)] w-full max-w-90 p-4 rounded-lg flex gap-3 [var(--color1)] shadow-sm items-center">
+            <img src={book.cover} alt={book.title} className="w-20 h-30 object-cover shadow flex-shrink-0"/>
+            <div className="flex flex-col">
+              <h3 className="font-bold text-sm line-clamp-2 text-[var(--color3)] text-center">{book.title}</h3>
+              <p className="text-xs text-[var(--color2)] text-center mb-3">{book.author}</p>
+              {/* 별점 저장 UI 부분 */}
+              <div className="flex flex-col items-center border-t border-[var(--color4)] pt-3 w-full">
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const isHovered = hover.isbn === book.isbn && star <= hover.rating;
+                  return (
+                    <button
+                      key={star}
+                      className={`text-2xl transition-transform hover:scale-125 ${
+                        isHovered ? 'text-[var(--color3)]' : 'text-[var(--color5)]'
+                      }`}
+                      onMouseEnter={() => setHover({isbn:book.isbn, rating:star})}
+                      onMouseLeave={() => setHover({isbn:'', rating:0})}
+                      onClick={() => saveWithRating(book, star)} // 클릭하면 바로 저장 함수 호출!
+                    >
+                      ★
+                    </button>
+                  )})}
+                </div>
               </div>
             </div>
           </div>
