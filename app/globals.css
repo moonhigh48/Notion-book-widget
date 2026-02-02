@@ -14,7 +14,7 @@
 
 @font-face {
     font-family: 'OngleipKonkon';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2412-1@1.0/Ownglyph_corncorn-Rg.woff2') format('woff2');
+    src: url('../public/fonts/konkon.ttf') format('truetype');
     font-weight: normal;
     font-display: swap;
 }
