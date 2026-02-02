@@ -5,12 +5,9 @@ export default function BookWidget() {
   const [keyword, setKeyword] = useState('');
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
-  
-  // 별점 관련 상태 추가
   const [hover, setHover] = useState({isbn:'', rating:0}); 
 
-  // 1. 검색 함수
-  const searchBooks = async () => {
+ const searchBooks = async () => {
     setLoading(true);
     const res = await fetch(`/api/book?keyword=${encodeURIComponent(keyword)}`);
     const data = await res.json();
@@ -18,7 +15,6 @@ export default function BookWidget() {
     setLoading(false);
   };
 
-  // 2. 별점 클릭 시 즉시 노션으로 저장하는 함수
   const saveWithRating = async (book: any, score: number) => {
     const res = await fetch('/api/book', {
       method: 'POST',
@@ -27,7 +23,7 @@ export default function BookWidget() {
         title: book.title,
         author: book.author,
         cover: book.cover,
-        rating: score, // 별점(숫자)을 함께 보냅니다.
+        rating: score,
       }),
     });
 
@@ -46,9 +42,10 @@ export default function BookWidget() {
       "--color4":"#C77B6D",
       "--color5":"#f3dad6"
     } as React.CSSProperties}
-    // 검색창 영역
-      className="p-4 bg-[var(--color1)] min-h-screen konkon">
-      <div className="px-4 py-2 max-w-98 mx-auto">
+   
+      className="embed-container border border-[var(--color4)] p-4 bg-[var(--color1)]
+      h-screen overflow-hidden flex flex-col konkon max-w-120 mx-auto">
+      <div className="sticky top-0 z-10 px-4 pb-1 w-full max-w-90 mx-auto">
         <div className="flex gap-2 mb-4">
           <input
             type="text"
@@ -68,15 +65,15 @@ export default function BookWidget() {
 
       {loading && <p className="text-center text-[var(--color4)]">검색 중...</p>}
 
-      <div className="space-y-4 flex flex-col items-center w-full ">
+      <div className="custom-scroll space-y-0 flex flex-col items-center w-full overflow-y-auto flex-1 px-4 pb-10">
         {books.map((book: any) => (
-          <div key={book.isbn} className="border border-[var(--color3)] w-full max-w-90 p-4 rounded-lg flex gap-3 [var(--color1)] shadow-sm items-center">
+          <div key={book.isbn} className=" w-full max-w-90 p-4 flex gap-3 [var(--color1)] items-center">
             <img src={book.cover} alt={book.title} className="w-20 h-30 object-cover shadow flex-shrink-0"/>
-            <div className="flex flex-col">
-              <h3 className="font-bold text-sm line-clamp-2 text-[var(--color3)] text-center">{book.title}</h3>
+            <div className="flex flex-col flex-1 h-full justify-center py-1">
+              <h3 className="font-bold text-sm line-clamp-1 text-[var(--color3)] line-clamp-1 text-center">{book.title}</h3>
               <p className="text-xs text-[var(--color2)] text-center mb-3">{book.author}</p>
-              {/* 별점 저장 UI 부분 */}
-              <div className="flex flex-col items-center border-t border-[var(--color4)] pt-3 w-full">
+
+              <div className="flex flex-col items-center border-t border-[var(--color4)] pt-2 w-full">
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((star) => {
                     const isHovered = hover.isbn === book.isbn && star <= hover.rating;
