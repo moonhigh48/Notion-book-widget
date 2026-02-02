@@ -47,7 +47,7 @@ export default function BookWidget() {
       "--color5":"#f3dad6"
     } as React.CSSProperties}
     // 검색창 영역
-      className="p-4 bg-[var(--color1)] min-h-screen font-konkon">
+      className="p-4 bg-[var(--color1)] min-h-screen konkon">
       <div className="px-4 py-2 max-w-98 mx-auto">
         <div className="flex gap-2 mb-4">
           <input
