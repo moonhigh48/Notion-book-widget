@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 
-// ⚠️ 여기에 본인의 정보를 입력하세요!
 const ALADIN_KEY = process.env.ALADIN_TTB_KEY;
 const NOTION_TOKEN = process.env.NOTION_TOKEN;
 const NOTION_DB_ID = process.env.NOTION_DB_ID;
@@ -23,8 +22,12 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const { title, author, cover, rating } = await request.json(); // rating 추가
+    let { title, author, cover, rating } = await request.json();
     
+    if (cover.includes('coversum')) {
+        cover = cover.replace('coversum', 'cover500');
+    }
+
     const response = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST',
       headers: {
@@ -37,10 +40,16 @@ export async function POST(request) {
         properties: {
           "제목": { title: [{ text: { content: title } }] },
           "저자": { rich_text: [{ text: { content: author } }] },
-          "평점": { number: rating } // 노션의 '평점' 컬럼에 숫자 저장
-        },
-        icon: { external: { url: cover } }
-      })
+          "평점": { number: rating },
+          "표지": { "files": [
+      {
+        "name": "Cover Image",
+        "type": "external",
+        "external": { "url": cover }
+      }
+    ]
+        }        
+      }})
     });
 
     if (response.ok) return NextResponse.json({ success: true });
