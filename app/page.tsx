@@ -6,6 +6,7 @@ export default function BookWidget() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hover, setHover] = useState({ isbn: '', rating: 0 });
+  const [savingStatus, setSavingStatus] = useState<Record<string, string>>({});
 
   const searchBooks = async () => {
     if (!keyword.trim()) return;
@@ -14,15 +15,26 @@ export default function BookWidget() {
       const res = await fetch(`/api/book?keyword=${encodeURIComponent(keyword)}`);
       const data = await res.json();
 
-      const highResData = data.map((book: any) => {
+      const processedData = data.map((book: any) => {
+        // 1. 고해상도 표지 전환
         let coverUrl = book.cover;
         if (coverUrl && coverUrl.includes('coversum')) {
           coverUrl = coverUrl.replace('coversum', 'cover500');
         }
-        return { ...book, cover: coverUrl };
+        
+        // 2. 작가 이름 정제 (지은이, 옮긴이 등 제거)
+        const cleanAuthor = book.author 
+          ? book.author.replace(/\s*\(.*?\)/g, '').trim() 
+          : "저자 미상";
+
+        return { 
+          ...book, 
+          cover: coverUrl,
+          author: cleanAuthor 
+        };
       });
 
-      setBooks(highResData);
+      setBooks(processedData);
     } catch (error) {
       console.error("검색 실패:", error);
     } finally {
@@ -30,22 +42,47 @@ export default function BookWidget() {
     }
   };
 
-  const saveWithRating = async (book: any, score: number) => {
-    const res = await fetch('/api/book', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: book.title,
-        author: book.author,
-        cover: book.cover,
-        rating: score,
-      }),
-    });
+  const saveBook = async (book: any, score: number | null, status: string) => {
+    const bookId = book.isbn;
+    setSavingStatus(prev => ({ ...prev, [bookId]: 'saving' }));
+    
+    const payload = {
+      title: book.title,
+      author: book.author,
+      cover: book.cover,
+      status: status,
+      rating: score,
+      date: status === '완독' ? new Date().toISOString().split('T')[0] : null
+    };
 
-    if (res.ok) {
-      alert(`'${book.title}'이(가) ${score}점으로 저장되었습니다!`);
-    } else {
-      alert('저장에 실패했습니다.');
+    try {
+      const res = await fetch('/api/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setSavingStatus(prev => ({ ...prev, [bookId]: 'success' }));
+        setTimeout(() => {
+          setSavingStatus(prev => {
+            const next = { ...prev };
+            delete next[bookId];
+            return next;
+          });
+        }, 2000);
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      setSavingStatus(prev => ({ ...prev, [bookId]: 'error' }));
+      setTimeout(() => {
+        setSavingStatus(prev => {
+          const next = { ...prev };
+          delete next[bookId];
+          return next;
+        });
+      }, 3000);
     }
   };
 
@@ -71,69 +108,49 @@ export default function BookWidget() {
             placeholder="어떤 책을 읽으셨나요?"
             className="flex-1 bg-white border border-[var(--color-primary)]/40 px-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all"
           />
-          <button 
-            onClick={searchBooks}
-            className="bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:shadow-lg active:scale-95 transition-all"
-          >
+          <button onClick={searchBooks} className="bg-[var(--color-primary)] text-white px-3 py-2.5 rounded-xl text-sm font-bold active:scale-95">
             검색
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 custom-scroll">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 animate-pulse">
-            <div className="w-12 h-12 border-4 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-[var(--color-primary)] font-medium">고화질 데이터를 불러오는 중...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-5">
-            {books.map((book: any) => (
-              <div 
-                key={book.isbn} 
-                className="group flex flex-col bg-[var(--color-card)] rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-transparent hover:border-[var(--color-primary)]/20 overflow-hidden"
-              >
-
-                <div className="relative aspect-[2/3] overflow-hidden">
-                  <img 
-                    src={book.cover}                     alt={book.title} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="grid grid-cols-3 gap-5">
+          {books.map((book: any) => (
+            <div key={book.isbn} className="group relative flex flex-col bg-[var(--color-card)] rounded-2xl shadow-sm border border-transparent hover:border-[var(--color-primary)]/20 overflow-hidden">
+              {savingStatus[book.isbn] && (
+                <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center text-white backdrop-blur-[1px] ${
+                  savingStatus[book.isbn] === 'saving' ? 'bg-black/20' : 
+                  savingStatus[book.isbn] === 'success' ? 'bg-black/60' : 'bg-red-500/60'
+                }`}>
+                  {savingStatus[book.isbn] === 'saving' ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 
+                   savingStatus[book.isbn] === 'success' ? '✓ 저장됨' : '✕ 실패'}
                 </div>
-                
-                <div className="p-3 flex flex-col items-center text-center">
-                  <h3 className="text-[13px] font-bold line-clamp-1 w-full mb-0.5 group-hover:text-[var(--color-primary)] transition-colors">
-                    {book.title}
-                  </h3>
-                  <p className="text-[10px] text-gray-400 line-clamp-1 mb-3">{book.author}</p>
-                  
-                  <div className="w-full h-[1px] bg-gray-100 mb-2" />
-                  
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((star) => {
-                      const isHovered = hover.isbn === book.isbn && star <= hover.rating;
-                      return (
-                        <button
-                          key={star}
-                          onMouseEnter={() => setHover({ isbn: book.isbn, rating: star })}
-                          onMouseLeave={() => setHover({ isbn: '', rating: 0 })}
-                          onClick={() => saveWithRating(book, star)}
-                          className={`text-xl transition-all duration-200 hover:scale-125 active:scale-90 ${
-                            isHovered ? 'text-[var(--color-star-fill)] drop-shadow-sm' : 'text-[var(--color-star-empty)]'
-                          }`}
-                        >
-                          ★
-                        </button>
-                      );
-                    })}
-                  </div>
+              )}
+              <div className="relative aspect-[2/3] overflow-hidden">
+                <img src={book.cover} className="w-full h-full object-cover" />
+              </div>
+              <div className="p-2 flex flex-col items-center text-center">
+                <h3 onClick={() => saveBook(book, null, '읽을 예정')} className="text-[11px] font-bold line-clamp-1 w-full cursor-pointer hover:underline mb-0.5">
+                  {book.title}
+                </h3>
+                <p className="text-[9px] text-gray-400 line-clamp-1 mb-2">{book.author}</p>
+                <div className="w-full h-[1px] bg-gray-100 mb-2" />
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onMouseEnter={() => setHover({ isbn: book.isbn, rating: star })}
+                      onMouseLeave={() => setHover({ isbn: '', rating: 0 })}
+                      onClick={() => saveBook(book, star, '완독')}
+                      className={`text-sm transition-transform hover:scale-125 ${hover.isbn === book.isbn && star <= hover.rating ? 'text-[var(--color-star-fill)]' : 'text-[var(--color-star-empty)]'}`}
+                    >★</button>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
