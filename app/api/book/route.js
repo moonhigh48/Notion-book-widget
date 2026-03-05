@@ -22,39 +22,44 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    let { title, author, cover, rating } = await request.json();
+    let { title, author, cover, rating, status, date } = await request.json();
     
-    if (cover.includes('coversum')) {
+    if (cover && cover.includes('coversum')) {
         cover = cover.replace('coversum', 'cover500');
+    }
+
+    const properties = {
+      "제목": { title: [{ text: { content: title } }] },
+      "저자": { rich_text: [{ text: { content: author } }] },
+      "상태": { status: { name: status || "읽을 예정" } },
+      "표지": { "files": [{ "name": "Cover Image", "type": "external", "external": { "url": cover } }] }
+    };
+
+    if (rating !== null && rating !== undefined) {
+      properties["평점"] = { number: rating };
+    }
+
+    if (date) {
+      properties["날짜"] = { date: { start: date } };
     }
 
     const response = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.NOTION_TOKEN}`,
+        'Authorization': `Bearer ${NOTION_TOKEN}`,
         'Notion-Version': '2022-06-28',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        parent: { database_id: process.env.NOTION_DB_ID },
-        properties: {
-          "제목": { title: [{ text: { content: title } }] },
-          "저자": { rich_text: [{ text: { content: author } }] },
-          "평점": { number: rating },
-          "표지": { "files": [
-      {
-        "name": "Cover Image",
-        "type": "external",
-        "external": { "url": cover }
-      }
-    ]
-        }        
-      }})
+        parent: { database_id: NOTION_DB_ID },
+        properties: properties
+      })
     });
+    
 
     if (response.ok) return NextResponse.json({ success: true });
     return NextResponse.json({ success: false }, { status: 500 });
   } catch (error) {
     return NextResponse.json({ success: false }, { status: 500 });
-  }
+  };
 }
