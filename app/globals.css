@@ -41,12 +41,16 @@ body {
 }
 
 .custom-scroll::-webkit-scrollbar-track {
-  background: #f8edeb;
+  background: #E0EBEF;
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {
-  background: #d48c7e;
+  background: ##BCCED;
   border-radius: 10px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #8CB4C5;
 }
 
 .embed-container {
